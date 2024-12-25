@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Software Creator</title>
+    <style>
+        body {
+            font-family: Google Sans,Helvetica Neue,sans-serif;
+            background-color: #070707;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: black;
+        }
+        h1 {
+            margin-bottom: 0.5rem;
+            margin-top: -7rem;
+        } span{
+            color: yellow;
+            position: relative;
+            top: 0;
+            animation: colorful 6s infinite;
+        }
+        @keyframes colorful {
+        100% {
+        filter: hue-rotate(360deg);
+        }
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #8080ff, rgb(241, 94, 68));
+            -webkit-background-clip: text;
+            font-size: 150px;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            font-family: Google Sans,Helvetica Neue,sans-serif;
+            font-weight: Lighter;
+        }
+        p {
+            text-align: center;
+            max-width: 900px;
+            margin-bottom: 4rem;
+            font-size: 20px;
+        }
+        input {
+            width: 100%;
+            max-width: 1600px;
+            max-height: 150px;
+            padding: 1rem;
+            border-radius: 25px;
+            border: none;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+        }
+        button {
+            background-color: #8080ff;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        #loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            text-align: center;
+            padding-top: 50vh;
+            font-size: 2rem;
+        }
+        #softwareContainer {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1><span class="gradient-text"><span class="auto-type"></span>Imagine. Create</span></h1>
+    <p>No more spending time looking up for simple software. Make one yourself!</p>
+
+    <form id="softwareForm">
+        <div style="text-align: center;">
+            <input type="text" id="userInput" placeholder="Enter your prompt" />
+            <button type="submit">Submit</button>
+        </div>
+    </form>
+
+    <div id="loading">Loading, please wait...</div>
+
+    <script>
+        const form = document.getElementById("softwareForm");
+        const loadingDiv = document.getElementById("loading");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const userInput = document.getElementById("userInput").value;
+            if (!userInput) {
+                alert("Please enter a prompt.");
+                return;
+            }
+
+            loadingDiv.style.display = "block"; // Show loading message
+
+            try {
+                const response = await fetch("http://4.150.179.157:5001/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({ userInput: userInput }),
+                });
+
+                if (!response.ok) throw new Error("Failed to start container creation");
+
+                const data = await response.json();
+                if (data.status === "success" && data.task_id) {
+                    const taskId = data.task_id;
+
+                    // Polling for the status
+                    const checkStatus = async () => {
+                        const statusResponse = await fetch(`http://4.150.179.157:5001/status/${taskId}`);
+                        const statusData = await statusResponse.json();
+
+                        if (statusData.status === "complete" && statusData.redirect_url) {
+                            // Ensure that all URLs are redirected within the container's path
+                            const redirectUrl = statusData.redirect_url;
+                            const containerName = taskId; // Use the task_id (random_sha256) as the container name
+
+                            // Modify the redirect to always stay within /containername path
+                            if (!redirectUrl.includes(`${containerName}`)) {
+                                window.location.href = `${window.location.origin}/${containerName}${new URL(redirectUrl).pathname}`;
+                            } else {
+                                window.location.href = redirectUrl; // Normal redirect
+                            }
+                        } else if (statusData.status === "failed") {
+                            alert("Container creation failed. Please try again.");
+                            loadingDiv.style.display = "none";
+                        } else {
+                            setTimeout(checkStatus, 3000); // Check again after 3 seconds
+                        }
+                    };
+
+                    checkStatus();
+                } else {
+                    throw new Error("An unexpected error occurred");
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                console.error(error);
+                loadingDiv.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
