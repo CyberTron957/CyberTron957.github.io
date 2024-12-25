@@ -1,2 +1,0 @@
-# flask-app/requirements.txt
-flask
