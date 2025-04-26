@@ -10,6 +10,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Header scroll effect
+    const header = document.querySelector('header');
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+            header.classList.add('scrolled');
+        } else {
+            header.classList.remove('scrolled');
+        }
+    });
+
     // Smooth scrolling for navigation links
     document.querySelectorAll('nav a, .hero-buttons a').forEach(anchor => {
         anchor.addEventListener('click', function (event) {
@@ -46,7 +56,28 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Animate skill bars on scroll
     animateSkillBars();
+    
+    // Enhanced scroll animations
+    setupScrollAnimations();
 });
+
+function setupScrollAnimations() {
+    const animatableElements = document.querySelectorAll('h2, .about-text p, .skill-item, .project-item, .testimonial-item, .accordion-item');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('fade-in-up');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.15, rootMargin: '0px 0px -100px 0px' });
+    
+    animatableElements.forEach(element => {
+        element.style.opacity = '0';
+        observer.observe(element);
+    });
+}
 
 function setupDarkMode() {
     // Create dark mode toggle if it doesn't exist
